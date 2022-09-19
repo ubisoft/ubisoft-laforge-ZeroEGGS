@@ -1,0 +1,2 @@
+python .\generate.py -o ..\data\outputs\v1\options.json -s ..\data\clean\005_Neutral_4_x_1_0.bvh -a ..\data\clean\005_Neutral_4_x_1_0.wav
+python .\generate.py -o ..\data\outputs\v1\options.json -c ..\data\test\evaluation.csv

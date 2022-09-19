@@ -1,0 +1,21 @@
+base_path,audio,style,file_name,temperature,seed,use_gpu,frames,generate
+..\data\clean,005_Neutral_4_x_1_0.wav,005_Neutral_4_x_1_0.bvh,Neutral,1,1234,TRUE,,TRUE
+..\data\clean,010_Sad_4_x_1_0.wav,010_Sad_4_x_1_0.bvh,Sad,1,1234,TRUE,,TRUE
+..\data\clean,015_Happy_4_x_1_0.wav,015_Happy_4_x_1_0.bvh,Happy,1,1234,TRUE,,TRUE
+..\data\clean,020_Relaxed_4_x_1_0.wav,020_Relaxed_4_x_1_0.bvh,Relaxed,1,1234,TRUE,,TRUE
+..\data\clean,025_Old_4_x_1_0.wav,025_Old_4_x_1_0.bvh,Old,1,1234,TRUE,,TRUE
+..\data\clean,029_Angry_3_x_1_0.wav,029_Angry_3_x_1_0.bvh,Angry,1,1234,TRUE,250 850,TRUE
+..\data\clean,033_Agreement_2_x_1_0.wav,033_Agreement_2_x_1_0.bvh,Agreement,1,1234,TRUE,,TRUE
+..\data\clean,035_Disagreement_2_x_1_0.wav,035_Disagreement_2_x_1_0.bvh,Disagreement,1,1234,TRUE,,TRUE
+..\data\clean,038_Flirty_2_x_1_0.wav,038_Flirty_2_x_1_0.bvh,Flirty,1,1234,TRUE,,TRUE
+..\data\clean,041_Pensive_2_x_1_0.wav,041_Pensive_2_x_1_0.bvh,Pensive,1,1234,TRUE,,TRUE
+..\data\clean,044_Scared_2_x_1_0.wav,044_Scared_2_x_1_0.bvh,Scared,1,1234,TRUE,,TRUE
+..\data\clean,047_Distracted_2_x_1_0.wav,047_Distracted_2_x_1_0.bvh,Distracted,1,1234,TRUE,,TRUE
+..\data\clean,050_Sarcastic_2_x_1_0.wav,050_Sarcastic_2_x_1_0.bvh,Sarcastic,1,1234,TRUE,,TRUE
+..\data\clean,053_Threatening_2_x_1_0.wav,053_Threatening_2_x_1_0.bvh,Threatening,1,1234,TRUE,,TRUE
+..\data\clean,056_Still_2_x_1_0.wav,056_Still_2_x_1_0.bvh,Still,1,1234,TRUE,,TRUE
+..\data\clean,058_Laughing_1_x_1_0.wav,058_Laughing_1_x_1_0.bvh,Laughing,1,1234,TRUE,,TRUE
+..\data\clean,061_Sneaky_2_x_1_0.wav,061_Sneaky_2_x_1_0.bvh,Sneaky,1,1234,TRUE,,TRUE
+..\data\clean,064_Tired_2_x_1_0.wav,064_Tired_2_x_1_0.bvh,Tired,1,1234,TRUE,,TRUE
+..\data\clean,067_Speech_2_x_1_0.wav,067_Speech_2_x_1_0.bvh,Speech_1,1,1234,TRUE,,TRUE
+..\data\clean,067_Speech_2_x_1_0.wav,067_Speech_2_x_1_0.bvh,Speech_2,1,5678,TRUE,,TRUE
