@@ -1,0 +1,33 @@
+{
+  "base_path": "../data",
+  "processed_data_path": "processed_v2",
+  "save_trimmed_audio": true,
+  "save_trimmed_animation": true,
+  "save_normalized_animations": false,
+  "save_final_data": true,
+  "audio_conf": {
+    "pre_emphasis": false,
+    "pre_emph_coeff": 0.97,
+    "centered": true,
+    "real_amplitude": true,
+    "normalize_mel_bins": true,
+    "normalize_range": true,
+    "min_clipping": 1e-05,
+    "sampling_rate": 16000,
+    "mel_fmin": 20,
+    "mel_fmax": 7600,
+    "n_mel_channels": 80,
+    "filter_length": 800,
+    "hop_length": 200,
+    "resample_method": "linear",
+    "normalize_loudness": false
+  },
+  "audio_feature_type": [
+    "mel_spec"
+  ],
+  "visualize_spectrogram": false,
+  "visualize_gaze": false,
+  "len_ratios": [
+    1.0
+  ]
+}

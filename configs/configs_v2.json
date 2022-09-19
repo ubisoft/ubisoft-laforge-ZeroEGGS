@@ -1,0 +1,44 @@
+{
+  "name": "S2G",
+  "paths": {
+    "base_path": "../Data",
+    "path_processed_data": "processed_v2",
+    "output_dir": null,
+    "models_dir": null
+  },
+  "net_opt": {
+    "decoder": {
+      "nhidden": 1024,
+      "num_rnn_layers": 2,
+      "rnn_cond": "normal"
+    },
+    "speech_encoder": {
+      "nhidden": 64,
+      "speech_encoding_size": 64
+    },
+    "style_encoder": {
+      "nhidden": 512,
+      "style_encoding_size": 64,
+      "example_length": 256,
+      "type": "attn",
+      "use_vae": true
+    }
+  },
+  "train_opt": {
+    "niterations": 160,
+    "batchsize": 32,
+    "window": 256,
+    "change_pace": true,
+    "learning_rate": 0.0001,
+    "learning_rate_decay": 0.995,
+    "eps": 1e-05,
+    "resume": false,
+    "use_gpu": true,
+    "thread_count": 1,
+    "seed": 1234,
+    "use_tensorboard": true,
+    "style_encoding_type": "example",
+    "generate_samples_step": 5000,
+    "use_script": false
+  }
+}
