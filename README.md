@@ -91,7 +91,7 @@ All the animation sequences are in the BVH file format and all the audio data ar
 
 ## Data Preparation
 
-Extract the data from the `zeggs_data.zip` file and place it in the `data` folder. Next run:
+Extract the data from the `Zeggs_data.zip` file and place it in the `data` folder. Next run:
 
 ```sh
 python data_pipeline.py
