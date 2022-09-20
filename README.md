@@ -55,6 +55,8 @@ ZEGGS dataset contains 67 sequences of monologues performed by a female actor sp
 
 The following styles are present in the ZEGGS dataset:
 
+<div align="center">  
+
 | **Style** | **Length (mins)** | **Style** | **Length (mins)** |
 |--------------|-----------------------|-------|---------------|
 | Agreement    | 5.25                  | Pensive | 6.21          |
@@ -68,6 +70,8 @@ The following styles are present in the ZEGGS dataset:
 | Neutral      | 11.13                 | Tired | 7.13          |
 | Old          | 11.37                 | Total | 134.65        |
 
+</div>  
+    
 ### Access to the data
 > This repository contains large files. In order to clone this repository including
 > the the large zip files, you need to use [git lfs](https://github.com/git-lfs/git-lfs/wiki/Installation).
