@@ -44,22 +44,14 @@ pip install -r requirements.txt
 
 > You may need to install [`sox`](http://sox.sourceforge.net/) on your system
 
-## Dataset
+## ZEGGS Dataset
 
 <div align="center"> 
 
 ![zeggs_data](media/zeggs_data.gif)
 
 </div>
-
-The speech and gesture data is contained in the `./data/zeggs_data.zip` file. All the animation sequences are in the BVH
-file format and all the audio data are in WAV format. When you extract the zip file, there are two folders:
-
-- `original` folder contains the original data where the animation and audio files are in their raw version and not
-  processed.
-
-- `clean` contains aligned animation and audio data and without unwanted audio of other speaker. For more details on how
-  these files have been processed check `data_pipeline.py`
+ZEGGS dataset contains 67 sequences of monologues performed by a female actor speaking in English and covers 19 different motion styles. 
 
 The following styles are present in the ZEGGS dataset:
 
@@ -76,9 +68,21 @@ The following styles are present in the ZEGGS dataset:
 | Neutral      | 11.13                 | Tired | 7.13          |
 | Old          | 11.37                 | Total | 134.65        |
 
-> This repository contains large file, e.g. `data/zeggs_data.zip` (2.8 GB). In order to clone this repository including
-> the
-> complete zip files, you need to use [git lfs](https://github.com/git-lfs/git-lfs/wiki/Installation).
+### Access to the data
+> This repository contains large files. In order to clone this repository including
+> the the large zip files, you need to use [git lfs](https://github.com/git-lfs/git-lfs/wiki/Installation).
+
+The speech and gesture data are contained in the `./data/Zeggs_data.zip`, `./data/Zeggs_data.z01`, and `./data/Zeggs_data.z02` files. You must put all of these parts to the same folder, and extract `.zip` file by WinRAR or Winzip.
+
+When you extract the zip file, there are two folders:
+
+- `original` folder contains the original data where the animation and audio files are in their raw version and not
+  processed.
+
+- `clean` contains aligned animation and audio data and without unwanted audio of other speaker. For more details on how
+  these files have been processed check `data_pipeline.py`
+
+All the animation sequences are in the BVH file format and all the audio data are in WAV format. 
 
 ## Data Preparation
 
