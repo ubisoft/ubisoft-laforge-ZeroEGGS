@@ -170,10 +170,10 @@ python ./generate.py -o "../data/outputs/v1/options_file.json" -c "../data/test/
 If you use this code and dataset, please cite our paper
 
 ```
-@article{ghorbani2022zeggs,
+@article{ghorbani2022zeroeggs,
   title={ZeroEGGS: Zero-shot Example-based Gesture Generation from Speech},
-  author={Ghorbani, Saeed and Ferstl, Ylva and Holden, Daniel and Troje, Nikolaus F. and Carbonneau, Marc-André},
-  publisher = {arXiv},
+  author={Ghorbani, Saeed and Ferstl, Ylva and Holden, Daniel and Troje, Nikolaus F and Carbonneau, Marc-Andr{\'e}},
+  journal={arXiv preprint arXiv:2209.07556},
   year={2022}
 }
 ```   
