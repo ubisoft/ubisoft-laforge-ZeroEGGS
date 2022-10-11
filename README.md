@@ -13,12 +13,8 @@ This repository contains the code for the ZeroEGGS project from
 this [article](https://arxiv.org/abs/2209.07556).
 It also contains our stylized speech and gesture dataset
 
-<div align="center">  
-
-[![IMAGE ALT TEXT](http://img.youtube.com/vi/YFg7QKWkjwQ/0.jpg)](http://www.youtube.com/watch?v=YFg7QKWkjwQ "Click to watch the video demo")
-
-[Click](http://www.youtube.com/watch?v=YFg7QKWkjwQ) to watch the video demo
-
+<div class="row justify-content-sm-center">
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/YFg7QKWkjwQ" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 </div>
 
 ## Environment Setup
