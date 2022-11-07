@@ -60,4 +60,5 @@ data/outputs/temp_v1
 .ipynb_checkpoints
 *.bvh
 *.wav
+*.mp3
 Docker
