@@ -47,18 +47,11 @@ dist/**
 *.npz
 data/clean
 data/original
-data/original_v0
 data/processed_v1
 data/processed_v2
-data/other_speakers
-data/backup
-data/showcase
-data/outputs/temp_v1
 
 .vscode
 .idea
 .ipynb_checkpoints
 *.bvh
 *.wav
-*.mp3
-Docker
