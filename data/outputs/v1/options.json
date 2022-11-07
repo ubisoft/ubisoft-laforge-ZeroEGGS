@@ -25,7 +25,7 @@
         }
     },
     "train_opt": {
-        "niterations": 120,
+        "niterations": 160,
         "batchsize": 32,
         "window": 256,
         "change_pace": true,
