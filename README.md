@@ -166,6 +166,12 @@ For example, you can run:
 python ./generate.py -o "../data/outputs/v1/options_file.json" -c "../data/test/evaluation.csv"
 ```
 
+## Rendering
+
+A compatible FBX file along with a MotionBuilder *bvh2fbx* script is provided in `./bvh2fbx` folder. You need to modify the path 
+to your python environment in `bvh2fbx.py` and the paths to the MotionBuilder plugins and executable in `bvh2fbx.bat` scripts. 
+Put all the pairs of bvh and wav files (with the same name) in the `./bvh2fbx/Rendered` folder and run `bvh2fbx.bat` script.
+
 ## Citation
 
 If you use this code and dataset, please cite our paper
