@@ -30,7 +30,6 @@
     "visualize_gaze": false,
     "len_ratios": [
         0.9,
-        1.0,
-        1.1
+        1.0
     ]
 }
