@@ -103,7 +103,8 @@ in the `configs` folder. You should change the configuration file name in the sc
 
 ## Training
 
-To train the model, run:
+You can use pre-trained models stored in `./data/outputs/saved_models`.
+However, if you want to train the model from scratch, run:
 
 ```sh
 python ./main.py -o <configs> -n <run_name>
