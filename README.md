@@ -172,6 +172,12 @@ The compatible FBX files (male and female characters) along with a MotionBuilder
 to your python environment and also the FBX character in `bvh2fbx.py` and the paths to the MotionBuilder plugins and executable in `bvh2fbx.bat` scripts. 
 Put all the pairs of bvh and wav files (with the same name) in the `./bvh2fbx/Rendered` folder and run `bvh2fbx.bat` script. 
 
+<div align="center"> 
+
+![LaForgeCharacters](media/LaForgeCharacters.png)
+
+</div>
+
 ## Citation
 
 If you use this code and dataset, please cite our paper
