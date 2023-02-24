@@ -5,7 +5,6 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
-
 class SGDataset(Dataset):
     def __init__(
             self,
