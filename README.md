@@ -4,13 +4,11 @@
 
 ## ZeroEGGS: Zero-shot Example-based Gesture Generation from Speech
 
-[![Paper](http://img.shields.io/badge/paper-arxiv.2209.07556-B31B1B.svg)](https://arxiv.org/abs/2209.07556)
-
-
+[![Paper](https://img.shields.io/badge/Paper-ZEGGS-orange.svg)](https://doi.org/10.1111/cgf.14734)
 </div>
 
 This repository contains the code for the ZeroEGGS project from
-this [article](https://arxiv.org/abs/2209.07556).
+this [article](https://doi.org/10.1111/cgf.14734).
 It also contains our stylized speech and gesture dataset
 
 <div align="center">  

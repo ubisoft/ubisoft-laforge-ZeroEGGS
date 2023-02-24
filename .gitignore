@@ -44,11 +44,10 @@ nodeLanguageServer.*/**
 dist/**
 
 # added
-*.npz
+#*.npz
 data/clean
 data/original
-data/processed_v1
-data/processed_v2
+data/processed_v1/processed_data.npz
 
 .vscode
 .idea
