@@ -21,4 +21,4 @@ elif platform.system() == "Linux":
        raise Exception("Error calling ffmpeg dependency: " + str(e) + "\n\nHave you installed ffmpeg with 'apt-get install ffmpeg'?\n")
 
 else:
-    raise Exception("Unsupported platform: {}".format(os.platform.system()))
+    raise Exception("Unsupported platform: {}".format(platform.system()))
