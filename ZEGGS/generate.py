@@ -75,8 +75,7 @@ def generate_gesture(
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.set_num_threads(1)
-    use_gpu = use_gpu and torch.cuda.is_available()
-    device = torch.device("cuda:0" if use_gpu else "cpu")
+    device = "cuda" if use_gpu and torch.cuda.is_available() else "cpu"
 
     # Data pipeline conf (We must use the same processing configuration as the one in training)
     with open(path_data_pipeline_conf, "r") as f:
@@ -116,13 +115,13 @@ def generate_gesture(
     )
 
     # Load Networks
-    network_speech_encoder = torch.load(path_network_speech_encoder_weights).to(device)
+    network_speech_encoder = torch.load(path_network_speech_encoder_weights, map_location=device).to(device)
     network_speech_encoder.eval()
 
-    network_decoder = torch.load(path_network_decoder_weights).to(device)
+    network_decoder = torch.load(path_network_decoder_weights, map_location=device).to(device)
     network_decoder.eval()
 
-    network_style_encoder = torch.load(path_network_style_encoder_weights).to(device)
+    network_style_encoder = torch.load(path_network_style_encoder_weights, map_location=device).to(device)
     network_style_encoder.eval()
 
     if use_script:
