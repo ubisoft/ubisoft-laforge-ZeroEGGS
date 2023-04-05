@@ -5,6 +5,7 @@
     "save_trimmed_animation": true,
     "save_normalized_animations": false,
     "save_final_data": true,
+    "inf_filename": "info.csv",
     "audio_conf": {
         "pre_emphasis": false,
         "pre_emph_coeff": 0.97,
