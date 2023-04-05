@@ -9,10 +9,12 @@ import pandas as pd
 from omegaconf import DictConfig
 from rich.console import Console
 
-from anim import bvh, quat
+from anim import bvh
+from anim import quat
 from anim.txform import *
 from audio.audio_files import read_wavfile
-from data_pipeline import preprocess_animation, preprocess_audio
+from data_pipeline import preprocess_animation
+from data_pipeline import preprocess_audio
 from helpers import split_by_ratio
 from utils import write_bvh
 
@@ -23,6 +25,7 @@ def generate_gesture(
         network_path,
         data_path,
         results_path,
+        style_encoding_type="example",
         blend_type="add",
         blend_ratio=[0.5, 0.5],
         file_name=None,
@@ -36,35 +39,43 @@ def generate_gesture(
 
     Args:
         audio_file ([type]): Path to audio file. If None the function does not generate geture and only outputs the style embedding
-        styles ([type]): What styles to use. This is a list of tuples S, where each tuple S provides info for one style.
-        Multiple styles are given for blending or stitching styles. Tuple S contains:
-            - S[0] is the path to the bvh example or the style embedding vec to be used directly
-            - S[1] is a list or tuple of size two defining the start and end frame to be used. None if style embedding is used directly
+        styles ([type]): What styles to use.
+        Multiple styles are given for blending or stitching styles.
+            Style Encoding Type == "example":
+                This is a list of tuples S, where each tuple S provides info for one style.
+                    - S[0] is the path to the bvh example or the style embedding vec to be used directly
+                    - S[1] is a list or tuple of size two defining the start and end frame to be used. None if style embedding is used directly
+            Style Encoding Type == "label":
+                - List of style labels (names)
+
         network_path ([type]): Path to the networks
         data_path ([type]): Path to the data directory containing needed processing information
         results_path ([type]): Path to result directory
+        style_encoding_type (str, optional): How to encode the style. Either "example" or "label". Defaults to "example".
         blend_type (str, optional): Blending type, stitch (transitioning) or add (mixing). Defaults to "add".
-        blend_ratio (list, optional): The proportion of blending. If blend type is "stitch", this is the proportion of the length. 
-                                      of the output for this style. If the blend type is "add" this is the interpolation weight 
+        blend_ratio (list, optional): The proportion of blending. If blend type is "stitch", this is the proportion of the length.
+                                      of the output for this style. If the blend type is "add" this is the interpolation weight
                                       Defaults to [0.5, 0.5].
         file_name ([type], optional): Output file name. If none the audio and example file names are used. Defaults to None.
         first_pose ([type], optional): The info required as the first pose. It can either be the path to the bvh file for using
-                                       first pose or the animation dictionary extracted by loading a bvh file. 
-                                       If None, the pose from the last example is used. Defaults to None.
+                                       first pose or the animation dictionary extracted by loading a bvh file.
+                                       If None, the pose from the last example is used (only used for example-based stylization.
+                                       Defaults to None.
         temperature (float, optional): VAE temprature. This adjusts the amount of stochasticity. Defaults to 1.0.
         seed (int, optional): Random seed. Defaults to 1234.
         use_gpu (bool, optional): Use gpu or cpu. Defaults to True.
         use_script (bool, optional): Use torch script. Defaults to False.
 
     Returns:
-        final_style_encoding: The final style embedding. If blend_type is "stitch", it is the style embedding for each frame. 
+        final_style_encoding: The final style embedding. If blend_type is "stitch", it is the style embedding for each frame.
                               If blend_type is "add", it is the interpolated style embedding vector
     """
 
     # Load details
     path_network_speech_encoder_weights = network_path / "speech_encoder.pt"
     path_network_decoder_weights = network_path / "decoder.pt"
-    path_network_style_encoder_weights = network_path / "style_encoder.pt"
+    if style_encoding_type == "example":
+        path_network_style_encoder_weights = network_path / "style_encoder.pt"
     path_stat_data = data_path / "stats.npz"
     path_data_definition = data_path / "data_definition.json"
     path_data_pipeline_conf = data_path / "data_pipeline_conf.json"
@@ -88,6 +99,7 @@ def generate_gesture(
 
     njoints = len(details["bone_names"])
     nlabels = len(details["label_names"])
+    label_names = details["label_names"]
     bone_names = details["bone_names"]
     parents = torch.as_tensor(details["parents"], dtype=torch.long, device=device)
     dt = details["dt"]
@@ -120,22 +132,26 @@ def generate_gesture(
 
     network_decoder = torch.load(path_network_decoder_weights, map_location=device).to(device)
     network_decoder.eval()
-
-    network_style_encoder = torch.load(path_network_style_encoder_weights, map_location=device).to(device)
-    network_style_encoder.eval()
+    
+    if style_encoding_type == "example":
+        network_style_encoder = torch.load(path_network_style_encoder_weights, map_location=device).to(device)
+        network_style_encoder.eval()
 
     if use_script:
         network_speech_encoder_script = torch.jit.script(network_speech_encoder)
         network_decoder_script = torch.jit.script(network_decoder)
-        network_style_encoder_script = torch.jit.script(network_style_encoder)
+        if style_encoding_type == "example":
+            network_style_encoder_script = torch.jit.script(network_style_encoder)
     else:
         network_speech_encoder_script = network_speech_encoder
         network_decoder_script = network_decoder
-        network_style_encoder_script = network_style_encoder
+        if style_encoding_type == "example":
+            network_style_encoder_script = network_style_encoder
 
     network_speech_encoder_script.eval()
     network_decoder_script.eval()
-    network_style_encoder_script.eval()
+    if style_encoding_type == "example":
+        network_style_encoder_script.eval()
 
     with torch.no_grad():
         # If audio is None we only output the style encodings
@@ -171,84 +187,96 @@ def generate_gesture(
         # Style Encoding
         style_encodings = []
 
-        for example in styles:
-            if isinstance(example[0], pathlib.WindowsPath) or isinstance(example[0], pathlib.PosixPath):
-                anim_name = Path(example[0]).stem
-                anim_data = bvh.load(example[0])
+        for style in styles:
+            if style_encoding_type == "example":
+                if isinstance(style[0], pathlib.WindowsPath) or isinstance(style[0], pathlib.PosixPath):
+                    anim_name = Path(style[0]).stem
+                    anim_data = bvh.load(style[0])
 
-                # Trimming if start/end frames are given
-                if example[1] is not None:
-                    anim_data["rotations"] = anim_data["rotations"][
-                                             example[1][0]: example[1][1]
-                                             ]
-                    anim_data["positions"] = anim_data["positions"][
-                                             example[1][0]: example[1][1]
-                                             ]
-                anim_fps = int(np.ceil(1 / anim_data["frametime"]))
-                assert anim_fps == 60
+                    # Trimming if start/end frames are given
+                    if style[1] is not None:
+                        anim_data["rotations"] = anim_data["rotations"][
+                                                 style[1][0]: style[1][1]
+                                                 ]
+                        anim_data["positions"] = anim_data["positions"][
+                                                 style[1][0]: style[1][1]
+                                                 ]
+                    anim_fps = int(np.ceil(1 / anim_data["frametime"]))
+                    assert anim_fps == 60
 
-                # Extracting features
-                (
-                    root_pos,
-                    root_rot,
-                    root_vel,
-                    root_vrt,
-                    lpos,
-                    lrot,
-                    ltxy,
-                    lvel,
-                    lvrt,
-                    cpos,
-                    crot,
-                    ctxy,
-                    cvel,
-                    cvrt,
-                    gaze_pos,
-                    gaze_dir,
-                ) = preprocess_animation(anim_data)
+                    # Extracting features
+                    (
+                        root_pos,
+                        root_rot,
+                        root_vel,
+                        root_vrt,
+                        lpos,
+                        lrot,
+                        ltxy,
+                        lvel,
+                        lvrt,
+                        cpos,
+                        crot,
+                        ctxy,
+                        cvel,
+                        cvrt,
+                        gaze_pos,
+                        gaze_dir,
+                    ) = preprocess_animation(anim_data)
 
-                # convert to tensor
-                nframes = len(anim_data["rotations"])
-                root_vel = torch.as_tensor(root_vel, dtype=torch.float32, device=device)
-                root_vrt = torch.as_tensor(root_vrt, dtype=torch.float32, device=device)
-                root_pos = torch.as_tensor(root_pos, dtype=torch.float32, device=device)
-                root_rot = torch.as_tensor(root_rot, dtype=torch.float32, device=device)
-                lpos = torch.as_tensor(lpos, dtype=torch.float32, device=device)
-                ltxy = torch.as_tensor(ltxy, dtype=torch.float32, device=device)
-                lvel = torch.as_tensor(lvel, dtype=torch.float32, device=device)
-                lvrt = torch.as_tensor(lvrt, dtype=torch.float32, device=device)
-                gaze_pos = torch.as_tensor(gaze_pos, dtype=torch.float32, device=device)
+                    # convert to tensor
+                    nframes = len(anim_data["rotations"])
+                    root_vel = torch.as_tensor(root_vel, dtype=torch.float32, device=device)
+                    root_vrt = torch.as_tensor(root_vrt, dtype=torch.float32, device=device)
+                    root_pos = torch.as_tensor(root_pos, dtype=torch.float32, device=device)
+                    root_rot = torch.as_tensor(root_rot, dtype=torch.float32, device=device)
+                    lpos = torch.as_tensor(lpos, dtype=torch.float32, device=device)
+                    ltxy = torch.as_tensor(ltxy, dtype=torch.float32, device=device)
+                    lvel = torch.as_tensor(lvel, dtype=torch.float32, device=device)
+                    lvrt = torch.as_tensor(lvrt, dtype=torch.float32, device=device)
+                    gaze_pos = torch.as_tensor(gaze_pos, dtype=torch.float32, device=device)
 
-                S_root_vel = root_vel.reshape(nframes, -1)
-                S_root_vrt = root_vrt.reshape(nframes, -1)
-                S_lpos = lpos.reshape(nframes, -1)
-                S_ltxy = ltxy.reshape(nframes, -1)
-                S_lvel = lvel.reshape(nframes, -1)
-                S_lvrt = lvrt.reshape(nframes, -1)
-                example_feature_vec = torch.cat(
-                    [
-                        S_root_vel,
-                        S_root_vrt,
-                        S_lpos,
-                        S_ltxy,
-                        S_lvel,
-                        S_lvrt,
-                        torch.zeros_like(S_root_vel),
-                    ],
-                    dim=1,
-                )
-                example_feature_vec = (example_feature_vec - anim_input_mean) / anim_input_std
+                    S_root_vel = root_vel.reshape(nframes, -1)
+                    S_root_vrt = root_vrt.reshape(nframes, -1)
+                    S_lpos = lpos.reshape(nframes, -1)
+                    S_ltxy = ltxy.reshape(nframes, -1)
+                    S_lvel = lvel.reshape(nframes, -1)
+                    S_lvrt = lvrt.reshape(nframes, -1)
+                    example_feature_vec = torch.cat(
+                        [
+                            S_root_vel,
+                            S_root_vrt,
+                            S_lpos,
+                            S_ltxy,
+                            S_lvel,
+                            S_lvrt,
+                            torch.zeros_like(S_root_vel),
+                        ],
+                        dim=1,
+                    )
+                    example_feature_vec = (example_feature_vec - anim_input_mean) / anim_input_std
 
-                style_encoding, _, _ = network_style_encoder_script(
-                    example_feature_vec[np.newaxis], temperature
-                )
-                style_encodings.append(style_encoding)
-            elif isinstance(example[0], np.ndarray):
-                anim_name = example[1]
-                style_embeddding = torch.as_tensor(
-                    example[0], dtype=torch.float32, device=device
-                )[np.newaxis]
+                    style_encoding, _, _ = network_style_encoder_script(
+                        example_feature_vec[np.newaxis], temperature
+                    )
+                    style_encodings.append(style_encoding)
+
+                elif isinstance(style[0], np.ndarray):
+                    anim_name = style[1]
+                    style_embeddding = torch.as_tensor(
+                        style[0], dtype=torch.float32, device=device
+                    )[np.newaxis]
+                    style_encodings.append(style_embeddding)
+            elif style_encoding_type == "label":
+                # get the index of style in label names
+                style_index = label_names.index(style)
+                style_embeddding = torch.zeros((1, nlabels), dtype=torch.float32, device=device)
+                style_embeddding[0, style_index] = 1.0
                 style_encodings.append(style_embeddding)
+                assert first_pose is not None
+            else:
+                raise ValueError("Unknown style encoding type")
+
         if blend_type == "stitch":
             if len(style_encodings) > 1:
                 if audio_file is None:
@@ -281,6 +309,7 @@ def generate_gesture(
 
         if audio_file is not None:
             se = np.array_split(np.arange(n_frames), len(style_encodings))
+
             if first_pose is not None:
                 if isinstance(first_pose, pathlib.WindowsPath) or isinstance(first_pose, pathlib.PosixPath):
                     anim_data = bvh.load(first_pose)
@@ -401,12 +430,15 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--results_path', type=str,
                         help="Results path. Default if 'results' directory in the folder containing networks",
                         nargs="?", const=None, required=False)
+    parser.add_argument('-se', '--style_encoding_type', type=str,
+                        help="Style encoding type either 'example' or 'label'", default="example", required=False)
 
     # 1. Generating gesture from a single pair of audio and style files
     parser.add_argument('-s', '--style', type=str, help="Path to style example file", required=False)
     parser.add_argument('-a', '--audio', type=str, help="Path to audio file", required=False)
     parser.add_argument('-n', '--file_name', type=str,
                         help="Output file name. If not given it will be automatically constructed", required=False)
+    parser.add_argument('-fp', '--first_pose', type=str, help="First pose bvh file", default=None, required=False)
     parser.add_argument('-t', '--temperature', type=float,
                         help="VAE temprature. This adjusts the amount of stochasticity.", nargs="?", default=1.0,
                         required=False)
@@ -439,6 +471,8 @@ if __name__ == "__main__":
     if results_path is None:
         results_path = Path(output_path) / "results"
 
+    style_encoding_type = args.style_encoding_type
+
     if args.csv is not None:
         console.print("Getting arguments from CSV file")
         df = pd.read_csv(args.csv)
@@ -454,13 +488,17 @@ if __name__ == "__main__":
 
                 console.print("Arguments:")
                 console.print(row.to_string(index=True))
+                style = [(base_path / Path(row["style"]), frames)] if style_encoding_type == "example" else [
+                    row["style"]]
                 generate_gesture(
                     audio_file=base_path / Path(row["audio"]),
-                    styles=[(base_path / Path(row["style"]), frames)],
+                    styles=style,
                     network_path=network_path,
                     data_path=data_path,
                     results_path=results_path,
+                    style_encoding_type=style_encoding_type,
                     file_name=row["file_name"],
+                    first_pose=base_path / Path(row["first_pose"]),
                     temperature=row["temperature"],
                     seed=row["seed"],
                     use_gpu=row["use_gpu"]
@@ -471,13 +509,16 @@ if __name__ == "__main__":
             df = pd.DataFrame([vars(args)])
             console.print(df.iloc[0].to_string(index=True))
             file_name = args.file_name
+            style = [(Path(args.style), args.frames)] if style_encoding_type == "example" else [args.style]
             generate_gesture(
                 audio_file=Path(args.audio),
-                styles=[(Path(args.style), args.frames)],
+                styles=style,
                 network_path=network_path,
                 data_path=data_path,
                 results_path=results_path,
+                style_encoding_type=style_encoding_type,
                 file_name=args.file_name,
+                first_pose=args.first_pose,
                 temperature=args.temperature,
                 seed=args.seed,
                 use_gpu=args.use_gpu

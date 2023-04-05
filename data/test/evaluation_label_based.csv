@@ -1,0 +1,9 @@
+base_path,audio,style,file_name,temperature,seed,use_gpu,frames,first_pose,generate
+..\data\clean,005_Neutral_4_x_1_0.wav,Neutral,Neutral,1,1234,TRUE,,005_Neutral_4_x_1_0.bvh,TRUE
+..\data\clean,010_Sad_4_x_1_0.wav,Sad,Sad,1,1234,TRUE,,010_Sad_4_x_1_0.bvh,TRUE
+..\data\clean,015_Happy_4_x_1_0.wav,Happy,Happy,1,1234,TRUE,,015_Happy_4_x_1_0.bvh,TRUE
+..\data\clean,020_Relaxed_4_x_1_0.wav,Relaxed,Relaxed,1,1234,TRUE,,020_Relaxed_4_x_1_0.bvh,TRUE
+..\data\clean,025_Old_4_x_1_0.wav,Old,Old,1,1234,TRUE,,025_Old_4_x_1_0.bvh,TRUE
+..\data\clean,029_Angry_3_x_1_0.wav,Angry,Angry,1,1234,TRUE,,029_Angry_3_x_1_0.bvh,TRUE
+..\data\clean,067_Speech_2_x_1_0.wav,Speech,Speech_1,1,1234,TRUE,,067_Speech_2_x_1_0.bvh,TRUE
+..\data\clean,067_Speech_2_x_1_0.wav,Speech,Speech_2,1,5678,TRUE,,067_Speech_2_x_1_0.bvh,TRUE

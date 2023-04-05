@@ -14,14 +14,14 @@ from anim import quat
 from anim.tquat import *
 from anim.txform import *
 from dataset import SGDataset
-from helpers import flatten_dict, save_useful_info, progress
-from modules import (
-    Decoder,
-    SpeechEncoder,
-    StyleEncoder,
-    compute_KL_div,
-    normalize,
-)
+from helpers import flatten_dict
+from helpers import progress
+from helpers import save_useful_info
+from modules import Decoder
+from modules import SpeechEncoder
+from modules import StyleEncoder
+from modules import compute_KL_div
+from modules import normalize
 from optimizers import RAdam
 from utils import write_bvh
 
@@ -129,23 +129,25 @@ def train(
             hidden_size=decoder_opts["nhidden"],
             num_rnn_layers=2,
         ).to(device)
-
-        network_style_encoder = StyleEncoder(
-            dimensions["pose_input_size"],
-            style_encoder_opts["nhidden"],
-            style_encoding_size,
-            type=style_encoder_opts["type"],
-            use_vae=style_encoder_opts["use_vae"],
-        ).to(device)
+        if style_encoding_type == "example":
+            network_style_encoder = StyleEncoder(
+                dimensions["pose_input_size"],
+                style_encoder_opts["nhidden"],
+                style_encoding_size,
+                type=style_encoder_opts["type"],
+                use_vae=style_encoder_opts["use_vae"],
+            ).to(device)
 
     if use_script:
         network_speech_encoder_script = torch.jit.script(network_speech_encoder)
         network_decoder_script = torch.jit.script(network_decoder)
-        network_style_encoder_script = torch.jit.script(network_style_encoder)
+        if style_encoding_type == "example":
+            network_style_encoder_script = torch.jit.script(network_style_encoder)
     else:
         network_speech_encoder_script = network_speech_encoder
         network_decoder_script = network_decoder
-        network_style_encoder_script = network_style_encoder
+        if style_encoding_type == "example":
+            network_style_encoder_script = network_style_encoder
 
     # ===============================================
     #                   Optimizer
@@ -194,7 +196,8 @@ def train(
         for batch_index, batch in enumerate(dl):
             network_speech_encoder.train()
             network_decoder.train()
-            network_style_encoder.train()
+            if style_encoding_type == "example":
+                network_style_encoder.train()
             (
                 W_audio_features,
                 W_root_pos,
@@ -231,6 +234,7 @@ def train(
             )
 
             # Style Encoder
+            mu, logvar = None, None
             if style_encoding_type == "example":
                 WStyle = (WStyle - anim_input_mean) / anim_input_std
                 style_encoding, mu, logvar = network_style_encoder_script(
@@ -477,7 +481,8 @@ def train(
 
                 torch.save(network_speech_encoder, path_network_speech_encoder_weights)
                 torch.save(network_decoder, path_network_decoder_weights)
-                torch.save(network_style_encoder, path_network_style_encoder_weights)
+                if style_encoding_type == "example":
+                    torch.save(network_style_encoder, path_network_style_encoder_weights)
                 torch.save({
                     'iteration': iteration,
                     "epoch": epoch,
@@ -494,7 +499,8 @@ def train(
 
                 torch.save(network_speech_encoder, path_network_speech_encoder_weights_current)
                 torch.save(network_decoder, path_network_decoder_weights_current)
-                torch.save(network_style_encoder, path_network_style_encoder_weights_current)
+                if style_encoding_type == "example":
+                    torch.save(network_style_encoder, path_network_style_encoder_weights_current)
                 torch.save({
                     'iteration': iteration,
                     "epoch": epoch,
@@ -505,7 +511,8 @@ def train(
                 with torch.no_grad():
                     network_speech_encoder.eval()
                     network_decoder.eval()
-                    network_style_encoder.eval()
+                    if style_encoding_type == "example":
+                        network_style_encoder.eval()
                     sys.stdout.write(
                         "\r|                           Generating Animation...                               |"
                     )
@@ -731,7 +738,7 @@ def train(
 if __name__ == "__main__":
 
     # For debugging
-    options = "../configs/configs_v1.json"
+    options = "../configs/configs_v2.json"
     with open(options, "r") as f:
         options = json.load(f)
 
