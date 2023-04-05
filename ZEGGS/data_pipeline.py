@@ -249,7 +249,7 @@ def data_pipeline(conf):
     base_path = Path(conf["base_path"])
     processed_data_path = base_path / conf["processed_data_path"]
     processed_data_path.mkdir(exist_ok=True)
-    info_filename = base_path / "info.csv"
+    info_filename = base_path / conf["info_filename"]
     animation_path = base_path / "original"
     audio_path = base_path / "original"
 

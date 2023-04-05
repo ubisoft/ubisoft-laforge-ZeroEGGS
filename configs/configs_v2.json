@@ -37,7 +37,7 @@
     "thread_count": 1,
     "seed": 1234,
     "use_tensorboard": true,
-    "style_encoding_type": "example",
+    "style_encoding_type": "label",
     "generate_samples_step": 5000,
     "use_script": false
   }
