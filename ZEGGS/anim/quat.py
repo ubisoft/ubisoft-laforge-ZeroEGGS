@@ -227,8 +227,55 @@ def fk_vel(lrot, lpos, lvrt, lvel, parents):
     return np.concatenate(gr, axis=-2), np.concatenate(gp, axis=-2), np.concatenate(gt, axis=-2), np.concatenate(gv,
                                                                                                                  axis=-2)
     
+def dot(a, b):
+    return np.sum(a*b, axis=-1, keepdims=True)
 
 
+def two_joint_ik(a, b, c, t, eps, a_gr, b_gr, a_lr, b_lr):
+
+    b_a = b - a
+    b_c = b - c
+    t_a = t - a
+    c_a = c - a
+  
+    lab = np.linalg.norm(b_a, ord=2, axis=-1, keepdims=True)
+    lcb = np.linalg.norm(b_c, ord=2, axis=-1, keepdims=True)
+    lat = np.linalg.norm(t_a, ord=2, axis=-1, keepdims=True)
+    lca = np.linalg.norm(c_a, ord=2, axis=-1, keepdims=True)
+
+    c_a = c_a / lca
+    b_a = b_a / lab
+    b_c = b_c / lcb
+    t_a = t_a / lat
+
+    ac_ab_0 = np.arccos(np.clip(dot(c_a, b_a), -1, 1))
+    ba_bc_0 = np.arccos(np.clip(dot(b_a, b_c), -1, 1))
+    ac_at_0 = np.arccos(np.clip(dot(c_a, t_a), -1, 1))
+
+    lat = np.clip(lat, eps, lab + lcb - eps)
+
+    ac_ab_1 = np.arccos(np.clip((lcb**2 - lab**2 - lat**2) / (-2*lab*lat), -1, 1))
+    ba_bc_1 = np.arccos(np.clip((lat**2 - lab**2 - lcb**2) / (-2*lab*lcb), -1, 1))
+
+    axis0 = normalize(np.cross(c_a, b_a))
+    axis1 = normalize(np.cross(c_a, t_a))
+    
+    r0 = from_angle_axis((ac_ab_1 - ac_ab_0)[..., 0], mul_vec(inv(a_gr), axis0))
+    r1 = from_angle_axis((ba_bc_1 - ba_bc_0)[..., 0], mul_vec(inv(b_gr), axis0))
+    r2 = from_angle_axis(ac_at_0[..., 0], mul_vec(inv(a_gr), axis1))
+
+    a_lr = mul(a_lr, mul(r0, r2))
+    b_lr = mul(b_lr, r1)
+    return a_lr, b_lr
+
+
+def ik(lrot, lpos, parents, thigh, knee, foot, target):
+    gp, gr = fk(lrot, lpos, parents)
+    lrot[..., thigh, :], lrot[..., knee, :] = two_joint_ik(gp[..., thigh, :], gp[..., knee, :], gp[..., foot, :],
+                                                           target, 1e-5,
+                                                           gr[..., thigh, :], gr[..., knee, :],
+                                                           lrot[..., thigh, :], lrot[..., knee, :])
+    return lrot, lpos
 
         
 
