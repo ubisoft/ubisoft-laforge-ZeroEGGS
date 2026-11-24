@@ -197,11 +197,16 @@ floor) before and after:
 zeggs-fix-feet input.bvh output.bvh
 ```
 
+Generated motion can also slowly turn away from the camera, because the model integrates its own turning speed.
+`--fix_heading` (or `zeggs-fix-feet --heading`) keeps turns faster than a few seconds and limits the slow trend to 20
+degrees from the starting direction (about what mocap wanders; `max_deviation` changes it), turning the body around the point between the feet. Use both flags together.
+Note that the skating score counts real steps too, so lively takes, mocap included, can score several cm/s.
+
 | Clip (same speech and seed for each pair) | Without | With `--fix_feet` |
 |------|---------|-------------------|
 | v1, example-based (147 s) | 3.1 cm/s, 68% of low-foot frames moving | 0.0 cm/s, 0% |
 | v2, label-based, Happy (147 s) | 7.5 cm/s, 87% | 0.2 cm/s, 1% |
-| v1, Happy example on Angry speech (127 s, the worst of 26 combinations tried) | 14.0 cm/s, 97% | 3.3 cm/s, 14% |
+| v1, Happy example on Angry speech (127 s, the worst of 26 combinations tried) | 14.0 cm/s, 97%, turns 176 degrees | 3.8 cm/s, 16%, turns 44 degrees at most and ends facing the camera (with `--fix_heading`) |
 
 The mocap itself scores 0.5 to 1.6 cm/s. Settings (contact thresholds, blend length, how far a foot may drift before it
 is re-pinned, `root_drift`) are arguments of `zeggs.postprocess.fix_foot_sliding`.

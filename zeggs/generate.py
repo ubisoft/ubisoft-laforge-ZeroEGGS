@@ -21,7 +21,7 @@ from .data_pipeline import preprocess_audio
 from .helpers import get_device
 from .helpers import split_by_ratio
 from .modules import example_feature_vector
-from .postprocess import fix_foot_sliding
+from .postprocess import fix_foot_sliding, fix_heading_drift
 from .utils import write_bvh
 
 ANIM_FEATURES = ("root_pos root_rot root_vel root_vrt lpos lrot ltxy lvel lvrt "
@@ -53,6 +53,7 @@ def generate_gesture(
         seed=1234,
         use_gpu=True,
         fix_feet=False,
+        fix_heading=False,
 ):
     """Generate stylized gesture from raw audio and style example (ZEGGS)
 
@@ -81,6 +82,7 @@ def generate_gesture(
         seed (int, optional): Random seed. Defaults to 1234.
         use_gpu (bool, optional): Use CUDA or Apple MPS when available. Defaults to True.
         fix_feet (bool, optional): Pin planted feet to remove foot sliding (see zeggs.postprocess). Defaults to False.
+        fix_heading (bool, optional): Keep the slow turning trend within 20 degrees of the start. Defaults to False.
 
     Returns:
         final_style_encoding: The final style embedding. If blend_type is "stitch", it is the style embedding for each frame.
@@ -256,9 +258,11 @@ def generate_gesture(
                 start_position=np.array([0, 0, 0]),
                 start_rotation=np.array([1, 0, 0, 0]),
             )
-            if fix_feet:
+            if fix_feet or fix_heading:
                 out_bvh = results_path / (file_name + ".bvh")
-                bvh.save(out_bvh, fix_foot_sliding(bvh.load(out_bvh)))
+                anim = bvh.load(out_bvh)
+                anim = fix_heading_drift(anim) if fix_heading else anim
+                bvh.save(out_bvh, fix_foot_sliding(anim) if fix_feet else anim)
             copyfile(audio_file, str(results_path / (file_name + ".wav")))
     return final_style_encoding
 
@@ -291,6 +295,8 @@ def main():
     parser.add_argument('-g', '--use_gpu', help="Use CUDA or Apple MPS (default is CPU)", action="store_true",
                         required=False)
     parser.add_argument('--fix_feet', action="store_true", help="Remove foot sliding by pinning planted feet")
+    parser.add_argument('--fix_heading', action="store_true",
+                        help="Keep the character from slowly turning away (slow trend within 20 degrees of the start)")
     parser.add_argument('-f', '--frames', type=int, help="Start and end frame of the style example to be used", nargs=2,
                         required=False)
 
@@ -336,6 +342,7 @@ def main():
                     seed=row["seed"],
                     use_gpu=row["use_gpu"],
                     fix_feet=args.fix_feet,
+                    fix_heading=args.fix_heading,
                 )
     else:
         with console.status(console.rule("Generating Gesture")):
@@ -355,6 +362,7 @@ def main():
                 seed=args.seed,
                 use_gpu=args.use_gpu,
                 fix_feet=args.fix_feet,
+                fix_heading=args.fix_heading,
             )
 
 
