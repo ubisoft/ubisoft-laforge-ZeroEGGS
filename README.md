@@ -256,7 +256,17 @@ until the dataset is extracted into `data/`.
 
 ## Rendering
 
-The compatible FBX files (male and female characters) along with a MotionBuilder *bvh2fbx* script is provided in the `tools/bvh2fbx` folder. You need to modify the path 
+There are two ways to turn generated BVH files into videos.
+
+**Without extra software: GenoView.** `tools/genoview` renders on the Geno character with shadows and ambient
+occlusion, side by side and with the speech muxed in (see [Viewing results on a skinned character](#viewing-results-on-a-skinned-character)):
+
+```sh
+python tools/genoview/genoview.py take1.bvh --record take1.mp4
+python tools/genoview/genoview.py raw.bvh fixed.bvh --labels raw fix_feet --audio speech.wav --record compare.mp4
+```
+
+**With MotionBuilder: the LaForge characters.** The compatible FBX files (male and female characters) along with a MotionBuilder *bvh2fbx* script is provided in the `tools/bvh2fbx` folder. You need to modify the path 
 to your python environment and also the FBX character in `bvh2fbx.py` and the paths to the MotionBuilder plugins and executable in `bvh2fbx.bat` scripts. 
 Put all the pairs of bvh and wav files (with the same name) in the `tools/bvh2fbx/Rendered` folder and run `bvh2fbx.bat` script. 
 
