@@ -63,3 +63,4 @@ data/processed_v*/processed_data.npz
 data/processed_v*/trimmed/
 data/processed_v*/data_info.html
 *.egg-info/
+data/outputs/foot_compare/
