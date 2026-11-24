@@ -21,6 +21,7 @@ from .data_pipeline import preprocess_audio
 from .helpers import get_device
 from .helpers import split_by_ratio
 from .modules import example_feature_vector
+from .postprocess import fix_foot_sliding
 from .utils import write_bvh
 
 ANIM_FEATURES = ("root_pos root_rot root_vel root_vrt lpos lrot ltxy lvel lvrt "
@@ -51,6 +52,7 @@ def generate_gesture(
         temperature=1.0,
         seed=1234,
         use_gpu=True,
+        fix_feet=False,
 ):
     """Generate stylized gesture from raw audio and style example (ZEGGS)
 
@@ -78,6 +80,7 @@ def generate_gesture(
         temperature (float, optional): VAE temperature. This adjusts the amount of stochasticity. Defaults to 1.0.
         seed (int, optional): Random seed. Defaults to 1234.
         use_gpu (bool, optional): Use CUDA or Apple MPS when available. Defaults to True.
+        fix_feet (bool, optional): Pin planted feet to remove foot sliding (see zeggs.postprocess). Defaults to False.
 
     Returns:
         final_style_encoding: The final style embedding. If blend_type is "stitch", it is the style embedding for each frame.
@@ -253,6 +256,9 @@ def generate_gesture(
                 start_position=np.array([0, 0, 0]),
                 start_rotation=np.array([1, 0, 0, 0]),
             )
+            if fix_feet:
+                out_bvh = results_path / (file_name + ".bvh")
+                bvh.save(out_bvh, fix_foot_sliding(bvh.load(out_bvh)))
             copyfile(audio_file, str(results_path / (file_name + ".wav")))
     return final_style_encoding
 
@@ -284,6 +290,7 @@ def main():
     parser.add_argument('-r', '--seed', type=int, help="Random seed", nargs="?", default=1234, required=False)
     parser.add_argument('-g', '--use_gpu', help="Use CUDA or Apple MPS (default is CPU)", action="store_true",
                         required=False)
+    parser.add_argument('--fix_feet', action="store_true", help="Remove foot sliding by pinning planted feet")
     parser.add_argument('-f', '--frames', type=int, help="Start and end frame of the style example to be used", nargs=2,
                         required=False)
 
@@ -328,6 +335,7 @@ def main():
                     temperature=row["temperature"],
                     seed=row["seed"],
                     use_gpu=row["use_gpu"],
+                    fix_feet=args.fix_feet,
                 )
     else:
         with console.status(console.rule("Generating Gesture")):
@@ -346,6 +354,7 @@ def main():
                 temperature=args.temperature,
                 seed=args.seed,
                 use_gpu=args.use_gpu,
+                fix_feet=args.fix_feet,
             )
 
 

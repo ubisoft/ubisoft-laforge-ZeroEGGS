@@ -21,6 +21,7 @@ dev = ["pytest>=8"]
 zeggs-preprocess = "zeggs.data_pipeline:main"
 zeggs-train = "zeggs.main:train_zeggs"
 zeggs-generate = "zeggs.generate:main"
+zeggs-fix-feet = "zeggs.postprocess:main"
 
 [build-system]
 requires = ["setuptools>=68"]

@@ -22,10 +22,13 @@ of motion-captured monologues in 19 styles.
 - **Zero-shot style control.** Give it a few seconds of motion in any style and it gestures that way.
 - **Blending and transitions.** Mix styles, or move from one style to another within a clip.
 - **Variation on demand.** The style space is probabilistic, so the same speech gives different takes (see `--temperature`).
+- **Clean feet.** Optional post-processing removes foot sliding from the generated motion (`--fix_feet`).
 - **Dataset included.** 67 takes by one actor with aligned audio and BVH, plus mirrored versions.
 
 ## What's new
 
+- **2026-11:** Foot sliding cleanup. `--fix_feet` pins planted feet and re-solves the legs with IK, and
+  `zeggs-fix-feet` does the same for any BVH and reports a foot-skating score (see [below](#foot-sliding-cleanup)).
 - **2026-11:** Runs on Python 3.12 and PyTorch 2.x, on CUDA, Apple Silicon (MPS) or CPU, with no system packages.
   The code is now an installable `zeggs` package with command-line tools, safe-loading checkpoints and tests that
   check generation against the original code.
@@ -35,7 +38,7 @@ of motion-captured monologues in 19 styles.
 ```sh
 git clone https://github.com/ubisoft/ubisoft-laforge-ZeroEGGS.git && cd ubisoft-laforge-ZeroEGGS
 python -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"
-zeggs-generate -o data/outputs/v1/options.json -s <style.bvh> -a <speech.wav>
+zeggs-generate -o data/outputs/v1/options.json -s <style.bvh> -a <speech.wav> --fix_feet
 ```
 
 The result lands in `data/outputs/v1/results/` as a BVH plus a copy of the audio. Any 60 fps BVH on the ZEGGS skeleton
@@ -167,6 +170,30 @@ Run `zeggs-generate -h` for the seed, temperature, output name and other options
 ```sh
 zeggs-generate -o data/outputs/v1/options.json -c data/test/evaluation_example_based.csv
 ```
+
+### Foot sliding cleanup
+
+Generated feet tend to slide while planted. `--fix_feet` pins each planted foot (detected from ankle height and speed)
+and re-solves the legs with two-bone IK, lowering the hips slightly when a pinned foot is out of reach:
+
+```sh
+zeggs-generate -o data/outputs/v1/options.json -s style.bvh -a speech.wav --fix_feet
+```
+
+It also works on any BVH on the ZEGGS skeleton, and prints a foot-skating score (horizontal speed of feet near the
+floor) before and after:
+
+```sh
+zeggs-fix-feet input.bvh output.bvh
+```
+
+| Clip (147 s, same speech and seed) | Without | With `--fix_feet` |
+|------|---------|-------------------|
+| v1, example-based | 3.1 cm/s, 68% of low-foot frames moving | 0.3 cm/s, 2% |
+| v2, label-based (Happy) | 7.5 cm/s, 87% | 1.1 cm/s, 6% |
+
+The mocap itself scores 0.5 to 1.6 cm/s. Settings (contact thresholds, blend length, how far a foot may drift before it
+is re-pinned) are arguments of `zeggs.postprocess.fix_foot_sliding`.
 
 ## Tests
 
