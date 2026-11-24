@@ -64,3 +64,4 @@ data/processed_v*/trimmed/
 data/processed_v*/data_info.html
 *.egg-info/
 data/outputs/foot_compare/
+tools/genoview/resources/Geno.bin
