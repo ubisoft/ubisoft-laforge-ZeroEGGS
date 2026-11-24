@@ -1,23 +1,52 @@
-<div align="center">   
+<div align="center">
 
-# ZEGGS
+# ZeroEGGS
 
-## ZeroEGGS: Zero-shot Example-based Gesture Generation from Speech
+### Zero-shot Example-based Gesture Generation from Speech
 
-[![Paper](https://img.shields.io/badge/Paper-ZEGGS-orange.svg)](https://doi.org/10.1111/cgf.14734)
-</div>
+[![Paper](https://img.shields.io/badge/CGF-2023-orange.svg)](https://doi.org/10.1111/cgf.14734)
+[![arXiv](https://img.shields.io/badge/arXiv-2209.07556-b31b1b.svg)](https://arxiv.org/abs/2209.07556)
+[![Video](https://img.shields.io/badge/YouTube-demo-red.svg)](https://www.youtube.com/watch?v=YFg7QKWkjwQ)
+[![License](https://img.shields.io/badge/license-CC%20BY--NC--ND%204.0-lightgrey.svg)](License.md)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.4%2B-ee4c2c.svg)
 
-This repository contains the code for the ZeroEGGS project from
-this [article](https://doi.org/10.1111/cgf.14734).
-It also contains our stylized speech and gesture dataset
-
-<div align="center">  
-
-[![IMAGE ALT TEXT](http://img.youtube.com/vi/YFg7QKWkjwQ/0.jpg)](http://www.youtube.com/watch?v=YFg7QKWkjwQ "Click to watch the video demo")
-
-[Click](http://www.youtube.com/watch?v=YFg7QKWkjwQ) to watch the video demo
+[![ZeroEGGS video demo](https://img.youtube.com/vi/YFg7QKWkjwQ/0.jpg)](https://www.youtube.com/watch?v=YFg7QKWkjwQ "Watch the video demo")
 
 </div>
+
+ZeroEGGS turns speech audio into full-body gesture animation (BVH) in the style of a short motion example, including
+styles it never saw in training. This repository has the code, pretrained models and the ZEGGS dataset: 135 minutes
+of motion-captured monologues in 19 styles.
+
+- **Zero-shot style control.** Give it a few seconds of motion in any style and it gestures that way.
+- **Blending and transitions.** Mix styles, or move from one style to another within a clip.
+- **Variation on demand.** The style space is probabilistic, so the same speech gives different takes (see `--temperature`).
+- **Dataset included.** 67 takes by one actor with aligned audio and BVH, plus mirrored versions.
+
+## What's new
+
+- **2026-11:** Runs on Python 3.12 and PyTorch 2.x, on CUDA, Apple Silicon (MPS) or CPU, with no system packages.
+  The code is now an installable `zeggs` package with command-line tools, safe-loading checkpoints and tests that
+  check generation against the original code.
+
+## Quickstart
+
+```sh
+git clone https://github.com/ubisoft/ubisoft-laforge-ZeroEGGS.git && cd ubisoft-laforge-ZeroEGGS
+python -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"
+zeggs-generate -o data/outputs/v1/options.json -s <style.bvh> -a <speech.wav>
+```
+
+The result lands in `data/outputs/v1/results/` as a BVH plus a copy of the audio. Any 60 fps BVH on the ZEGGS skeleton
+works as the style example (the dataset below has 19 styles to start from), and any WAV works as speech.
+
+## Pretrained models
+
+| Model | Style input | Command |
+|-------|-------------|---------|
+| `v1` | a motion example (BVH, optional frame range `-f start end`) | `zeggs-generate -o data/outputs/v1/options.json -s style.bvh -a speech.wav` |
+| `v2` | a style name, trained on 9 styles (Happy, Old, Disagreement, Sad, Speech, Relaxed, Neutral, Agreement, Angry) | `zeggs-generate -o data/outputs/v2/options.json -se label -s Happy -fp first_pose.bvh -a speech.wav` |
 
 ## Environment Setup
 
