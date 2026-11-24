@@ -54,11 +54,25 @@ def test_fix_reduces_skating_and_keeps_upper_body():
     fixed = fix_foot_sliding(a)
     before, after = foot_skating(a)[0], foot_skating(fixed)[0]
     assert after < 0.5 * before
-    g0, g1 = globals_of(a)[1], globals_of(fixed)[1]
-    head = a["names"].index("Head")
-    # only the hips may move (vertically, when a foot is out of reach), so the head shifts by at most that drop
-    drop = np.abs(fixed["positions"][:, 0, 1] - a["positions"][:, 0, 1]).max()
-    assert np.abs(g1[:, head] - g0[:, head]).max() <= drop + 1e-3
+    # the upper body keeps its pose: only leg joints and the root may change
+    legs = {a["names"].index(j) for leg in LEGS for j in leg[:3]} | {0}
+    others = [i for i in range(len(a["names"])) if i not in legs]
+    r0 = quat.from_euler(np.radians(a["rotations"]), a["order"])[:, others]
+    r1 = quat.from_euler(np.radians(fixed["rotations"]), fixed["order"])[:, others]
+    np.testing.assert_allclose(np.abs(np.sum(r0 * r1, axis=-1)), 1.0, atol=1e-5)
+
+
+def test_root_drift_removes_whole_body_skating():
+    """A body gliding sideways at 10 cm/s with still feet: the root correction should remove the glide."""
+    if not EXAMPLE.exists():
+        pytest.skip("ZEGGS dataset not extracted into data/")
+    a = load_clip(600)
+    a["rotations"] = a["rotations"][:1].repeat(600, 0)
+    a["positions"] = a["positions"][:1].repeat(600, 0)
+    a["positions"][:, 0, 0] += 10 * np.arange(600) / 60
+    assert foot_skating(a)[0] > 5
+    assert foot_skating(fix_foot_sliding(a))[0] < 0.5
+    assert foot_skating(fix_foot_sliding(a, root_drift=False))[0] > foot_skating(fix_foot_sliding(a))[0]
 
 
 @needs_data

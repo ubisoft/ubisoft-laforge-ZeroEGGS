@@ -100,7 +100,20 @@ def _two_bone_ik(a, b, c, t, a_gr, b_gr, a_lr, b_lr, eps=1e-5):
     return quat.mul(a_lr, quat.mul(r0, r2)), quat.mul(b_lr, r1)
 
 
-def fix_foot_sliding(anim, height_margin=3.0, speed_thresh=30.0, blend=15, max_offset=10.0, reach=0.995):
+def _contacts_and_velocity(gpos, names, fps, height_margin, speed_thresh):
+    """Per ankle: contact mask and horizontal velocity (units/s, first frame 0)."""
+    out = []
+    for _, _, ankle, _ in LEGS:
+        p = gpos[:, names.index(ankle)]
+        speed = np.concatenate([[0.0], np.linalg.norm(np.diff(p, axis=0), axis=-1) * fps])
+        contact = detect_contacts(p[:, 1], speed, np.percentile(p[:, 1], 5) + height_margin, speed_thresh)
+        vel = np.concatenate([np.zeros((1, 2)), np.diff(p[:, [0, 2]], axis=0) * fps])
+        out.append((contact, vel))
+    return out
+
+
+def fix_foot_sliding(anim, height_margin=3.0, speed_thresh=30.0, blend=15, max_offset=10.0, reach=0.995,
+                     root_drift=True):
     """Return a copy of a loaded BVH dict with planted feet pinned and legs re-solved.
 
     Args:
@@ -110,11 +123,23 @@ def fix_foot_sliding(anim, height_margin=3.0, speed_thresh=30.0, blend=15, max_o
         blend: frames to ease the lock in and out
         max_offset: a contact is split where the raw foot wanders further than this from the pinned position
         reach: fraction of full leg length the IK may use before the hips are lowered
+        root_drift: first remove whole-body skating, by subtracting the planted feet's horizontal drift from the root
     """
     names, parents, fps = anim["names"], anim["parents"], 1.0 / anim["frametime"]
     lrot = quat.unroll(quat.from_euler(np.radians(anim["rotations"]), anim["order"]))
     lpos = anim["positions"].copy()
     grot, gpos = quat.fk(lrot, lpos, parents)
+
+    for _ in range(int(root_drift) * 2):  # second pass: contacts the raw drift hid become detectable
+        # When the whole body skates, the planted feet move with the root. Moving the root back by the (smoothed)
+        # average drift of the planted feet keeps the body where its feet are, so the foot lock below has little to do.
+        drift, weight = np.zeros((len(lpos), 2)), np.zeros((len(lpos), 1))
+        for contact, vel in _contacts_and_velocity(gpos, names, fps, height_margin, speed_thresh):
+            drift += contact[:, None] * vel
+            weight += contact[:, None]
+        drift = _smooth(drift / np.maximum(weight, 1), blend)
+        lpos[:, 0, [0, 2]] -= np.cumsum(drift, axis=0) / fps
+        grot, gpos = quat.fk(lrot, lpos, parents)
 
     # Where each foot should be: raw pose blended towards its pinned contact pose.
     desired = []

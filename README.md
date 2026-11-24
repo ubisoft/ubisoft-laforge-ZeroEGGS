@@ -181,8 +181,10 @@ zeggs-generate -o data/outputs/v1/options.json -c data/test/evaluation_example_b
 
 </div>
 
-Generated feet tend to slide while planted. `--fix_feet` pins each planted foot (detected from ankle height and speed)
-and re-solves the legs with two-bone IK, lowering the hips slightly when a pinned foot is out of reach:
+Generated feet tend to slide while planted, and sometimes the whole body glides with them. `--fix_feet` first moves
+the root back by the drift of the planted feet (removing whole-body skating), then pins each planted foot (detected
+from ankle height and speed) and re-solves the legs with two-bone IK, lowering the hips slightly when a pinned foot is
+out of reach:
 
 ```sh
 zeggs-generate -o data/outputs/v1/options.json -s style.bvh -a speech.wav --fix_feet
@@ -195,13 +197,14 @@ floor) before and after:
 zeggs-fix-feet input.bvh output.bvh
 ```
 
-| Clip (147 s, same speech and seed) | Without | With `--fix_feet` |
+| Clip (same speech and seed for each pair) | Without | With `--fix_feet` |
 |------|---------|-------------------|
-| v1, example-based | 3.1 cm/s, 68% of low-foot frames moving | 0.3 cm/s, 2% |
-| v2, label-based (Happy) | 7.5 cm/s, 87% | 1.1 cm/s, 6% |
+| v1, example-based (147 s) | 3.1 cm/s, 68% of low-foot frames moving | 0.0 cm/s, 0% |
+| v2, label-based, Happy (147 s) | 7.5 cm/s, 87% | 0.2 cm/s, 1% |
+| v1, Happy example on Angry speech (127 s, the worst of 26 combinations tried) | 14.0 cm/s, 97% | 3.3 cm/s, 14% |
 
 The mocap itself scores 0.5 to 1.6 cm/s. Settings (contact thresholds, blend length, how far a foot may drift before it
-is re-pinned) are arguments of `zeggs.postprocess.fix_foot_sliding`.
+is re-pinned, `root_drift`) are arguments of `zeggs.postprocess.fix_foot_sliding`.
 
 ## Viewing results on a skinned character
 
