@@ -100,7 +100,20 @@ def _two_bone_ik(a, b, c, t, a_gr, b_gr, a_lr, b_lr, eps=1e-5):
     return quat.mul(a_lr, quat.mul(r0, r2)), quat.mul(b_lr, r1)
 
 
-def fix_foot_sliding(anim, height_margin=3.0, speed_thresh=30.0, blend=15, max_offset=10.0, reach=0.995):
+def _contacts_and_velocity(gpos, names, fps, height_margin, speed_thresh):
+    """Per ankle: contact mask and horizontal velocity (units/s, first frame 0)."""
+    out = []
+    for _, _, ankle, _ in LEGS:
+        p = gpos[:, names.index(ankle)]
+        speed = np.concatenate([[0.0], np.linalg.norm(np.diff(p, axis=0), axis=-1) * fps])
+        contact = detect_contacts(p[:, 1], speed, np.percentile(p[:, 1], 5) + height_margin, speed_thresh)
+        vel = np.concatenate([np.zeros((1, 2)), np.diff(p[:, [0, 2]], axis=0) * fps])
+        out.append((contact, vel))
+    return out
+
+
+def fix_foot_sliding(anim, height_margin=3.0, speed_thresh=30.0, blend=15, max_offset=10.0, reach=0.995,
+                     root_drift=True):
     """Return a copy of a loaded BVH dict with planted feet pinned and legs re-solved.
 
     Args:
@@ -110,11 +123,23 @@ def fix_foot_sliding(anim, height_margin=3.0, speed_thresh=30.0, blend=15, max_o
         blend: frames to ease the lock in and out
         max_offset: a contact is split where the raw foot wanders further than this from the pinned position
         reach: fraction of full leg length the IK may use before the hips are lowered
+        root_drift: first remove whole-body skating, by subtracting the planted feet's horizontal drift from the root
     """
     names, parents, fps = anim["names"], anim["parents"], 1.0 / anim["frametime"]
     lrot = quat.unroll(quat.from_euler(np.radians(anim["rotations"]), anim["order"]))
     lpos = anim["positions"].copy()
     grot, gpos = quat.fk(lrot, lpos, parents)
+
+    for _ in range(int(root_drift) * 2):  # second pass: contacts the raw drift hid become detectable
+        # When the whole body skates, the planted feet move with the root. Moving the root back by the (smoothed)
+        # average drift of the planted feet keeps the body where its feet are, so the foot lock below has little to do.
+        drift, weight = np.zeros((len(lpos), 2)), np.zeros((len(lpos), 1))
+        for contact, vel in _contacts_and_velocity(gpos, names, fps, height_margin, speed_thresh):
+            drift += contact[:, None] * vel
+            weight += contact[:, None]
+        drift = _smooth(drift / np.maximum(weight, 1), blend)
+        lpos[:, 0, [0, 2]] -= np.cumsum(drift, axis=0) / fps
+        grot, gpos = quat.fk(lrot, lpos, parents)
 
     # Where each foot should be: raw pose blended towards its pinned contact pose.
     desired = []
@@ -152,6 +177,36 @@ def fix_foot_sliding(anim, height_margin=3.0, speed_thresh=30.0, blend=15, max_o
     return out
 
 
+def heading(anim):
+    """Facing direction of the hips over time, in degrees around the vertical axis (unwrapped)."""
+    lrot = quat.from_euler(np.radians(anim["rotations"]), anim["order"])
+    grot, _ = quat.fk(lrot, anim["positions"], anim["parents"])
+    fwd = quat.mul_vec(grot[:, 0], np.array([0.0, 0.0, 1.0]))
+    return np.degrees(np.unwrap(np.arctan2(fwd[:, 0], fwd[:, 2])))
+
+
+def fix_heading_drift(anim, max_deviation=20.0, window=4.0):
+    """Return a copy with the slow turning trend kept within `max_deviation` degrees of the starting direction.
+
+    Generated motion integrates its own turning speed, so small errors add up and the character can slowly turn
+    away. Turns faster than `window` seconds are kept; only the slow trend beyond the limit is rotated back, around
+    the point between the ankles so planted feet stay put (apply before fix_foot_sliding).
+    """
+    yaw = heading(anim)
+    radius = max(1, int(window / anim["frametime"] / 2))
+    trend = _smooth(yaw[:, None], radius)[:, 0]
+    limited = yaw[0] + np.clip(trend - yaw[0], -max_deviation, max_deviation)
+    turn = quat.from_angle_axis(np.radians(limited - trend), np.array([0.0, 1.0, 0.0]))
+    lrot = quat.from_euler(np.radians(anim["rotations"]), anim["order"])
+    lpos = anim["positions"].copy()
+    _, gpos = quat.fk(lrot, lpos, anim["parents"])
+    names = list(anim["names"])
+    pivot = (gpos[:, names.index("LeftFoot")] + gpos[:, names.index("RightFoot")]) / 2 * np.array([1, 0, 1])
+    lrot[:, 0] = quat.mul(turn, lrot[:, 0])
+    lpos[:, 0] = quat.mul_vec(turn, lpos[:, 0] - pivot) + pivot
+    return dict(anim, positions=lpos, rotations=np.degrees(quat.to_euler(lrot, order=anim["order"])))
+
+
 def foot_skating(anim, height_margin=3.0, moving=2.0):
     """Horizontal speed of feet that are near the floor, from foot height only (no contact labels).
 
@@ -175,14 +230,17 @@ def main():
     parser = argparse.ArgumentParser(description="Pin planted feet in a BVH (ZEGGS skeleton) and report foot skating")
     parser.add_argument("input", help="Input BVH")
     parser.add_argument("output", nargs="?", help="Output BVH (default: <input>_feet.bvh)")
+    parser.add_argument("--heading", action="store_true", help="Also correct slow heading drift (fix_heading_drift)")
     args = parser.parse_args()
     anim = bvh.load(args.input)
-    fixed = fix_foot_sliding(anim)
+    fixed = fix_foot_sliding(fix_heading_drift(anim) if args.heading else anim)
     output = args.output or args.input.replace(".bvh", "_feet.bvh")
     bvh.save(output, fixed)
     for label, a in (("before", anim), ("after", fixed)):
         speed, frac = foot_skating(a)
-        print(f"{label}: low-foot speed {speed:.2f} cm/s, moving {100 * frac:.1f}% of low-foot frames")
+        turn = np.abs(heading(a) - heading(a)[0]).max()
+        print(f"{label}: low-foot speed {speed:.2f} cm/s, moving {100 * frac:.1f}% of low-foot frames, "
+              f"max turn from start {turn:.0f} deg")
     print(f"saved {output}")
 
 

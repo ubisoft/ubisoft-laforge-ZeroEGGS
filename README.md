@@ -27,6 +27,8 @@ of motion-captured monologues in 19 styles.
 
 ## What's new
 
+- **2026-11:** A skinned-character viewer and video recorder (`tools/genoview`) and `zeggs-retarget` for the Geno
+  character.
 - **2026-11:** Foot sliding cleanup. `--fix_feet` pins planted feet and re-solves the legs with IK, and
   `zeggs-fix-feet` does the same for any BVH and reports a foot-skating score (see [below](#foot-sliding-cleanup)).
 - **2026-11:** Runs on Python 3.12 and PyTorch 2.x, on CUDA, Apple Silicon (MPS) or CPU, with no system packages.
@@ -173,8 +175,16 @@ zeggs-generate -o data/outputs/v1/options.json -c data/test/evaluation_example_b
 
 ### Foot sliding cleanup
 
-Generated feet tend to slide while planted. `--fix_feet` pins each planted foot (detected from ankle height and speed)
-and re-solves the legs with two-bone IK, lowering the hips slightly when a pinned foot is out of reach:
+<div align="center">
+
+![Foot sliding with and without --fix_feet](media/foot_fix.gif)
+
+</div>
+
+Generated feet tend to slide while planted, and sometimes the whole body glides with them. `--fix_feet` first moves
+the root back by the drift of the planted feet (removing whole-body skating), then pins each planted foot (detected
+from ankle height and speed) and re-solves the legs with two-bone IK, lowering the hips slightly when a pinned foot is
+out of reach:
 
 ```sh
 zeggs-generate -o data/outputs/v1/options.json -s style.bvh -a speech.wav --fix_feet
@@ -187,13 +197,53 @@ floor) before and after:
 zeggs-fix-feet input.bvh output.bvh
 ```
 
-| Clip (147 s, same speech and seed) | Without | With `--fix_feet` |
+Generated motion can also slowly turn away from the camera, because the model integrates its own turning speed.
+`--fix_heading` (or `zeggs-fix-feet --heading`) keeps turns faster than a few seconds and limits the slow trend to 20
+degrees from the starting direction (about what mocap wanders; `max_deviation` changes it), turning the body around the point between the feet. Use both flags together.
+Note that the skating score counts real steps too, so lively takes, mocap included, can score several cm/s.
+
+| Clip (same speech and seed for each pair) | Without | With `--fix_feet` |
 |------|---------|-------------------|
-| v1, example-based | 3.1 cm/s, 68% of low-foot frames moving | 0.3 cm/s, 2% |
-| v2, label-based (Happy) | 7.5 cm/s, 87% | 1.1 cm/s, 6% |
+| v1, example-based (147 s) | 3.1 cm/s, 68% of low-foot frames moving | 0.0 cm/s, 0% |
+| v2, label-based, Happy (147 s) | 7.5 cm/s, 87% | 0.2 cm/s, 1% |
+| v1, Happy example on Angry speech (127 s, the worst of 26 combinations tried) | 14.0 cm/s, 97%, turns 176 degrees | 3.8 cm/s, 16%, turns 44 degrees at most and ends facing the camera (with `--fix_heading`) |
 
 The mocap itself scores 0.5 to 1.6 cm/s. Settings (contact thresholds, blend length, how far a foot may drift before it
-is re-pinned) are arguments of `zeggs.postprocess.fix_foot_sliding`.
+is re-pinned, `root_drift`) are arguments of `zeggs.postprocess.fix_foot_sliding`.
+
+## Viewing results on a skinned character
+
+`tools/genoview` plays or records motion on the Geno character with shadows and ambient occlusion, which makes foot
+sliding and floor penetration easy to see. It is adapted from [GenoViewPython](https://github.com/orangeduck/GenoViewPython)
+by Daniel Holden, including its playback and inspection tools (timeline, foot-slide markers, onion skinning, skeleton
+overlay). ZEGGS output is moved onto the Geno skeleton automatically, and the WAV saved next to it is played in sync.
+
+```sh
+pip install -e ".[viewer]"
+zeggs-generate -o data/outputs/v1/options.json -s style.bvh -a speech.wav -n take1
+python tools/genoview/genoview.py data/outputs/v1/results/take1.bvh
+```
+
+Compare several takes side by side, with labels and your own colours (default: orange, charcoal, teal, mauve). In
+the window, the Colours checkbox opens a colour picker for each character and shows its hex code for `--colors`:
+
+```sh
+python tools/genoview/genoview.py raw.bvh fixed.bvh --labels raw fix_feet --colors "#ffa100" "#3d3d3d"
+```
+
+Add `--record out.mp4` (or `.gif`) to render offscreen instead, with `--start`, `--end`, `--fps`, `--size`,
+`--foot-markers` and `--onion`. In the window, Ctrl + left drag rotates, Ctrl + right drag pans and the wheel zooms;
+space plays or pauses, Left/Right step a frame, Up/Down change speed, F5 reloads and dropping BVH files on the window
+replaces the characters.
+
+On first run the viewer downloads the Geno character from GenoViewPython (checked against a SHA-256 hash). The Geno
+character is free for non-commercial research use and is not redistributed in this repository; GenoView's code is MIT
+licensed (`tools/genoview/LICENSE`).
+
+`zeggs-retarget in.bvh` writes the Geno version of a clip for use in other tools. It applies a constant rotation offset
+per joint and a vertical root shift, fitted on takes that were retargeted in Maya
+([zeroeggs-retarget](https://github.com/orangeduck/zeroeggs-retarget)); on held-out takes it matches them within 0.04
+degrees per joint.
 
 ## Tests
 

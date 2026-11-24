@@ -16,12 +16,14 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+viewer = ["raylib==5.5.0.3", "imageio-ffmpeg>=0.5"]
 
 [project.scripts]
 zeggs-preprocess = "zeggs.data_pipeline:main"
 zeggs-train = "zeggs.main:train_zeggs"
 zeggs-generate = "zeggs.generate:main"
 zeggs-fix-feet = "zeggs.postprocess:main"
+zeggs-retarget = "zeggs.retarget:main"
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -29,3 +31,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["zeggs*"]
+
+[tool.setuptools.package-data]
+zeggs = ["data/*.npz"]
