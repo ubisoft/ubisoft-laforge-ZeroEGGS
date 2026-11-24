@@ -1,10 +1,10 @@
 {
     "name": "ZEGGS",
     "paths": {
-        "base_path": "../Data",
+        "base_path": "data",
         "path_processed_data": "processed_v2",
-        "output_dir": "../Data/outputs/v2",
-        "models_dir": "../Data/outputs/v2/saved_models"
+        "output_dir": "data/outputs/v2",
+        "models_dir": "data/outputs/v2/saved_models"
     },
     "net_opt": {
         "decoder": {
@@ -38,7 +38,6 @@
         "seed": 1234,
         "use_tensorboard": true,
         "style_encoding_type": "label",
-        "generate_samples_step": 5000,
-        "use_script": false
+        "generate_samples_step": 5000
     }
 }

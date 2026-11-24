@@ -1,5 +1,5 @@
 {
-    "base_path": "../data",
+    "base_path": "data",
     "processed_data_path": "processed_v1",
     "save_trimmed_audio": true,
     "save_trimmed_animation": true,

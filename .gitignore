@@ -54,3 +54,12 @@ data/processed_v1/processed_data.npz
 .ipynb_checkpoints
 *.bvh
 *.wav
+
+# ZEGGS: extracted dataset, generated and processed data
+data/clean/
+data/original/
+data/outputs/*/results/
+data/processed_v*/processed_data.npz
+data/processed_v*/trimmed/
+data/processed_v*/data_info.html
+*.egg-info/

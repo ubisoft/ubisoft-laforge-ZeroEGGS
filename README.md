@@ -21,26 +21,16 @@ It also contains our stylized speech and gesture dataset
 
 ## Environment Setup
 
-Create and activate a virtual environment to work in, e.g. using Conda:
+Python 3.10+ and PyTorch 2.4+ on Linux, macOS or Windows. No system packages are needed. From the repository root:
 
 ```sh
-conda create -n zeggs python=3.8
-conda activate zeggs
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
 ```
 
-Install CUDA and PyTorch 1.12.x For CUDA 11.3, this would look like:
-
-```sh
-conda install pytorch torchvision cudatoolkit=11.3 -c pytorch
-```
-
-Install the remaining requirements with pip:
-
-```sh
-pip install -r requirements.txt
-```
-
-> You may need to install [`sox`](http://sox.sourceforge.net/) on your system
+All commands below run from the repository root; paths in the configs are relative to it.
+Devices: `use_gpu` picks CUDA, then Apple MPS, then CPU.
 
 ## ZEGGS Dataset
 
@@ -71,11 +61,17 @@ The following styles are present in the ZEGGS dataset:
 </div>  
     
 ### Access to the data
-> This repository contains large files. In order to clone this repository including
-> the the large zip files, you need to use [git lfs](https://github.com/git-lfs/git-lfs/wiki/Installation).
-> If you still get errors, directly download `zip` files.
 
-The speech and gesture data are contained in the `./data/Zeggs_data.zip`, `./data/Zeggs_data.z01`, and `./data/Zeggs_data.z02` files. You must put all of these parts to the same folder, and extract `.zip` file by WinRAR or Winzip.
+The speech and gesture data are in `data/Zeggs_data.zip`, `data/Zeggs_data.z01` and `data/Zeggs_data.z02`, stored with
+[Git LFS](https://git-lfs.com). Either clone with Git LFS, or download the three parts directly (about 2.8 GB) and
+check them against the `sha256` in each LFS pointer file:
+
+```sh
+for f in Zeggs_data.zip Zeggs_data.z01 Zeggs_data.z02; do
+  curl -L -o $f https://media.githubusercontent.com/media/ubisoft/ubisoft-laforge-ZeroEGGS/main/data/$f
+done
+zip -s 0 Zeggs_data.zip --out joined.zip && unzip joined.zip -d data && rm joined.zip
+```
 
 When you extract the zip file, there are two folders:
 
@@ -83,92 +79,80 @@ When you extract the zip file, there are two folders:
   processed.
 
 - `clean` contains aligned animation and audio data and without unwanted audio of other speaker. For more details on how
-  these files have been processed check `data_pipeline.py`
+  these files have been processed check `zeggs/data_pipeline.py`
 
-All the animation sequences are in the BVH file format and all the audio data are in WAV format. 
+All the animation sequences are in the BVH file format and all the audio data are in WAV format.
 
 ## Data Preparation
 
-Extract the data from the `Zeggs_data.zip` file and place it in the `data` folder. Next run:
+With `data/original` in place, run:
 
 ```sh
-python data_pipeline.py
+zeggs-preprocess -c configs/data_pipeline_conf_v1.json
 ```
 
-This processes data and creates the necessary files for training and evaluation in the "processed" folder. You can
-customize the data pipeline by changing `data_pipeline_conf.json` config file. Two suggested configurations are provided
-in the `configs` folder. You should change the configuration file name in the script.
+This writes the training files to the `processed_data_path` folder of the config. Two configurations are provided in
+`configs`. `--info <csv>` processes a subset of takes (same columns as `data/info.csv`).
 
 ## Training
 
-You can use pre-trained models stored in `./data/outputs/saved_models`.
-However, if you want to train the model from scratch, run:
+Pre-trained models are in `data/outputs/v1` (example-based) and `data/outputs/v2` (label-based). To train from scratch:
 
 ```sh
-python ./main.py -o <configs> -n <run_name>
+zeggs-train -o configs/configs_v1.json -n zeggs_v1
 ```
 
-For example, to train the model with the default configuration, run:
+Each run saves its options, a copy of the code, TensorBoard logs, sample BVHs and checkpoints. Set
+`"resume": true` and `models_dir` in the options to continue a run.
 
-```sh
-python ./main.py -o "../configs/configs_v1.json" -n "zeggs_v1"
-```
+Checkpoints are `{class, config, state_dict}` files loaded with `torch.load(weights_only=True)`. Weights pickled by
+the original code can be converted once with `python -m zeggs.checkpoint <models_dir>` (the shipped models already
+are).
 
 ## Inference
 
-After training is finished or using provided pretrained models (provided in `./data/outputs`), you can generate gestures
-given speech and style as
-input
-using `generate.py`. The output will be save in `bvh` format. For full functionality (blending, transitions, using
-pre-extracted style encodings, etc. ) you need
-to directly use `generate_gesture` function. Otherwise, you can use CLI as explained below.
+After training is finished or using provided pretrained models (provided in `data/outputs`), you can generate gestures
+given speech and style as input using `zeggs-generate`. The output will be saved in `bvh` format. For full
+functionality (blending, transitions, using pre-extracted style encodings, etc.) use the `generate_gesture` function in
+`zeggs/generate.py`. Otherwise, you can use the CLI as explained below.
 
 ### Using the CLI
 
-You can run the inference using the CLI in two ways:
-
 #### 1. Generating a single sample from a single audio/style pair
 
-The CLI command looks like this:
-
 ```sh
-python ./generate.py -o <options file> -s <style file> -a <audio file>
+zeggs-generate -o data/outputs/v1/options.json -s data/clean/067_Speech_2_x_1_0.bvh -a data/clean/067_Speech_2_x_1_0.wav
 ```
 
-where `options file` is similar to the training config file but contains the path to the saved pretrained models and
-other required data. For example, you can run:
+`options file` is the one saved by training; it points to the models and processed data. The label-based model takes
+a style name and a first pose:
 
 ```sh
-python ./generate.py -o "../data/outputs/v1/options.json" -s "../data/clean/067_Speech_2_x_1_0.bvh" -a "../data/clean/067_Speech_2_x_1_0.wav"
+zeggs-generate -o data/outputs/v2/options.json -se label -s Happy -fp data/clean/067_Speech_2_x_1_0.bvh -a data/clean/067_Speech_2_x_1_0.wav
 ```
 
-To get more help on how to set other parameters such as seed, temperature, output file name, etc., run the command
-below:
-
-```sh
-python ./generate.py -h.
-```
+Run `zeggs-generate -h` for the seed, temperature, output name and other options.
 
 #### 2. Generating a batch of samples from a CSV file
 
-You can generate a batch of animated gestures from a csv file containing audio and style file paths along with other
-parameters by running:
-
 ```sh
-python ./generate.py -o <options file> -c <CSV file>
+zeggs-generate -o data/outputs/v1/options.json -c data/test/evaluation_example_based.csv
 ```
 
-For example, you can run:
+## Tests
 
 ```sh
-python ./generate.py -o "../data/outputs/v1/options.json" -c "../data/test/evaluation_example_based.csv"
+pytest tests
 ```
+
+`tests/test_generate_regression.py` checks generation against outputs recorded from the original code; it is skipped
+until the dataset is extracted into `data/`.
 
 ## Rendering
 
-The compatible FBX files (male and female characters) along with a MotionBuilder *bvh2fbx* script is provided in `./bvh2fbx` folder. You need to modify the path 
+The compatible FBX files (male and female characters) along with a MotionBuilder *bvh2fbx* script is provided in the `tools/bvh2fbx` folder. You need to modify the path 
 to your python environment and also the FBX character in `bvh2fbx.py` and the paths to the MotionBuilder plugins and executable in `bvh2fbx.bat` scripts. 
-Put all the pairs of bvh and wav files (with the same name) in the `./bvh2fbx/Rendered` folder and run `bvh2fbx.bat` script. 
+Put all the pairs of bvh and wav files (with the same name) in the `tools/bvh2fbx/Rendered` folder and run `bvh2fbx.bat` script. 
 
 <div align="center"> 
 
